@@ -65,7 +65,7 @@ section{padding:3rem 1.25rem}
 .nb.disp{background:#fff;border-color:#dde;color:#555}
 .nb.disp:hover{background:#FFF0F0;border-color:var(--r);color:var(--r);transform:scale(1.15)}
 .nb.vend{background:#FFE4E4;border-color:#FF9090;color:#CC3333;cursor:not-allowed;opacity:.7}
-.nb.res{background:#FFF8DC;border-color:#FFC107;color:#996600;cursor:not-allowed}
+.nb.rsv{background:#FFF8DC;border-color:#FFC107;color:#996600;cursor:not-allowed}
 .nb.sel{background:linear-gradient(135deg,var(--r),var(--o))!important;border-color:transparent!important;color:#fff!important;transform:scale(1.15);box-shadow:0 4px 14px rgba(255,71,87,.4)}
 .nb.hide{display:none}
 .ley{display:flex;gap:1.25rem;flex-wrap:wrap;margin-top:1.25rem}
@@ -239,7 +239,7 @@ footer p{font-size:.85rem;opacity:.6;font-weight:600}
     <div class="ft">
       <button class="fb on" onclick="filtrar('todos',this)">Todos</button>
       <button class="fb" onclick="filtrar('disp',this)">Disponibles</button>
-      <button class="fb" onclick="filtrar('res',this)">Reservados</button>
+      <button class="fb" onclick="filtrar('rsv',this)">Reservados</button>
       <button class="fb" onclick="filtrar('vend',this)">Vendidos</button>
     </div>
     <div class="ng" id="grid"></div>
@@ -514,13 +514,13 @@ async function cargarEstado(){
     if(!vb || vb.classList.contains('sel')) continue; // no tocar lo que el usuario tiene elegido sin confirmar
     var target=ocupados[n]||'disp';
     if(target==='vend'){
-      if(!vb.classList.contains('vend')){vb.classList.remove('disp','res');vb.classList.add('vend');vb.disabled=true;}
+      if(!vb.classList.contains('vend')){vb.classList.remove('disp','rsv');vb.classList.add('vend');vb.disabled=true;}
       vcnt++;
     }else if(target==='res'){
-      if(!vb.classList.contains('res')){vb.classList.remove('disp','vend');vb.classList.add('res');vb.disabled=true;}
+      if(!vb.classList.contains('rsv')){vb.classList.remove('disp','vend');vb.classList.add('rsv');vb.disabled=true;}
       rcnt++;
     }else{
-      if(!vb.classList.contains('disp')){vb.classList.remove('vend','res');vb.classList.add('disp');vb.disabled=false;}
+      if(!vb.classList.contains('disp')){vb.classList.remove('vend','rsv');vb.classList.add('disp');vb.disabled=false;}
       dcnt++;
     }
   }
@@ -592,7 +592,7 @@ async function registrar(){
   for(var i=0;i<sels.length;i++)if(vl.indexOf(sels[i])<0)vl.push(sels[i]);
   await dbSet('rifa_vend',vl);
   // Actualizar grilla visualmente (queda como RESERVADO hasta que se confirme el pago)
-  for(var i=0;i<sels.length;i++){var el=document.querySelector('.nb[data-n="'+sels[i]+'"]');if(el){el.classList.remove('disp','sel');el.classList.add('res');el.disabled=true;}}
+  for(var i=0;i<sels.length;i++){var el=document.querySelector('.nb[data-n="'+sels[i]+'"]');if(el){el.classList.remove('disp','sel');el.classList.add('rsv');el.disabled=true;}}
   // Guardar registro en nube
   var rl=await dbGet('rifa_reg')||[];
   var idLocal=Date.now();
