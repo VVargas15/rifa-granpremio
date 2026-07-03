@@ -416,13 +416,13 @@ async function enviarASheets(datos){
 async function actualizarEnSheets(datos){
   if(!GSHEET_URL){ console.warn('[Sheets] GSHEET_URL vacío'); return false; }
   try{
-    var p=new URLSearchParams();
-    p.append('action','actualizar');
-    p.append('id',String(datos.id||''));
-    p.append('estado',datos.estado||'confirmado');
-    if(datos.metodo) p.append('metodo',datos.metodo);
-    if(datos.comprobante) p.append('comprobante',datos.comprobante);
-    await fetch(GSHEET_URL,{method:'POST',mode:'no-cors',body:p});
+    var parts=['action=actualizar'];
+    parts.push('id='+encodeURIComponent(String(datos.id||'')));
+    parts.push('estado='+encodeURIComponent(datos.estado||'confirmado'));
+    if(datos.metodo) parts.push('metodo='+encodeURIComponent(datos.metodo));
+    if(datos.comprobante) parts.push('comprobante='+encodeURIComponent(datos.comprobante));
+    var body=parts.join('&');
+    await fetch(GSHEET_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body});
   }catch(e){
     console.error('[Sheets] Fallo de red al enviar actualización:', e);
     return false;
@@ -497,7 +497,7 @@ async function cargarEstado(){
         for(var j=0;j<nums.length;j++){
           var num=parseInt(String(nums[j]).replace(/\D/g,''),10);
           if(!isNaN(num) && num>=1 && num<=100){
-            ocupados[num]=(est==='publicado'||est==='confirmado')?'vend':'res';
+            ocupados[num]=(est==='publicado')?'vend':'res';
           }
         }
       }
