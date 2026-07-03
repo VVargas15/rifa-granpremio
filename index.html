@@ -386,9 +386,9 @@ function copiarLlaveNu(){
   });
 }
 
-// Enviar registro NUEVO a Google Sheets (GET). Devuelve true/false para saber si funcionó.
+// Enviar registro NUEVO a Google Sheets (GET). Devuelve {ok, id} — el id es el que asigna el SERVIDOR (fila real en la hoja), no el local.
 async function enviarASheets(datos){
-  if(!GSHEET_URL){ console.warn('[Sheets] GSHEET_URL vacío'); return false; }
+  if(!GSHEET_URL){ console.warn('[Sheets] GSHEET_URL vacío'); return {ok:false}; }
   try{
     var p='action=save';
     p+='&nombre='+encodeURIComponent(datos.nombre||'');
@@ -400,16 +400,19 @@ async function enviarASheets(datos){
     p+='&fecha='+encodeURIComponent(datos.fecha||new Date().toLocaleString('es-CO'));
     var res=await fetch(GSHEET_URL+'?'+p,{redirect:'follow'});
     var json=await res.json();
-    if(!json.ok){ console.error('[Sheets] Error al guardar:', json.error); return false; }
-    console.log('[Sheets] Registro guardado OK, id=',json.id);
-    return true;
+    if(!json.ok){ console.error('[Sheets] Error al guardar:', json.error); return {ok:false}; }
+    console.log('[Sheets] Registro guardado OK, id real del servidor=',json.id);
+    return {ok:true, id:json.id};
   }catch(e){
     console.error('[Sheets] Fallo de red al guardar registro:', e);
-    return false;
+    return {ok:false};
   }
 }
 
-// Actualiza estado/comprobante en Google Sheets. Devuelve true/false para saber si funcionó.
+// Actualiza estado/comprobante en Google Sheets.
+// Envía con no-cors (el navegador no deja leer esa respuesta por CORS, pero la
+// petición SÍ llega y se ejecuta), y luego confirma el éxito real releyendo la
+// lista (eso sabemos que sí se puede leer) y comprobando que el estado cambió.
 async function actualizarEnSheets(datos){
   if(!GSHEET_URL){ console.warn('[Sheets] GSHEET_URL vacío'); return false; }
   try{
@@ -419,13 +422,24 @@ async function actualizarEnSheets(datos){
     p.append('estado',datos.estado||'confirmado');
     if(datos.metodo) p.append('metodo',datos.metodo);
     if(datos.comprobante) p.append('comprobante',datos.comprobante);
-    var res=await fetch(GSHEET_URL,{method:'POST',redirect:'follow',body:p});
-    var json=await res.json();
-    if(!json.ok){ console.error('[Sheets] Error al actualizar:', json.error); return false; }
-    console.log('[Sheets] Actualizado OK:', json.msg);
-    return true;
+    await fetch(GSHEET_URL,{method:'POST',mode:'no-cors',body:p});
   }catch(e){
-    console.error('[Sheets] Fallo de red al actualizar (comprobante/estado):', e);
+    console.error('[Sheets] Fallo de red al enviar actualización:', e);
+    return false;
+  }
+  // Esperar un momento a que Apps Script procese, luego verificar
+  await new Promise(function(r){ setTimeout(r,1800); });
+  try{
+    var res=await fetch(GSHEET_URL+'?action=list');
+    var json=await res.json();
+    if(!json.ok || !Array.isArray(json.data)) { console.error('[Sheets] No se pudo verificar la lista:', json.error); return false; }
+    var row=json.data.find(function(r){ return String(r.id)===String(datos.id); });
+    if(!row){ console.error('[Sheets] No se encontró el registro al verificar, id=',datos.id); return false; }
+    var ok = String(row.estado||'').toLowerCase()===String(datos.estado||'confirmado').toLowerCase();
+    console.log(ok?'[Sheets] Verificado OK':'[Sheets] Verificación falló, estado actual=',row.estado);
+    return ok;
+  }catch(e){
+    console.error('[Sheets] Fallo de red al verificar:', e);
     return false;
   }
 }
@@ -581,17 +595,24 @@ async function registrar(){
   for(var i=0;i<sels.length;i++){var el=document.querySelector('.nb[data-n="'+sels[i]+'"]');if(el){el.classList.remove('disp','sel');el.classList.add('res');el.disabled=true;}}
   // Guardar registro en nube
   var rl=await dbGet('rifa_reg')||[];
-  var id=Date.now();
-  rl.push({id:id,nombre:n,pais:p,correo:c,nums:nums,total:tot,estado:'pendiente',metodo:_metodo,fecha:new Date().toLocaleString('es-CO'),comprobante:null});
+  var idLocal=Date.now();
+  rl.push({id:idLocal,nombre:n,pais:p,correo:c,nums:nums,total:tot,estado:'pendiente',metodo:_metodo,fecha:new Date().toLocaleString('es-CO'),comprobante:null});
   await dbSet('rifa_reg',rl);
-  regData.id=id;
+  regData.id=idLocal;
   document.getElementById('fcon').style.display='none';
   document.getElementById('exito').style.display='block';
   document.getElementById('exmsg').textContent='Registro guardado. Abriendo pago en 1 segundo...';
   // Enviar a Google Sheets (esperamos la respuesta para poder avisar si falla)
-  var okSheets=await enviarASheets({id:id,nombre:n,pais:p,correo:c,nums:nums.join(','),total:tot,estado:'pendiente',metodo:_metodo,fecha:new Date().toLocaleString('es-CO')});
-  if(!okSheets){
+  var res=await enviarASheets({id:idLocal,nombre:n,pais:p,correo:c,nums:nums.join(','),total:tot,estado:'pendiente',metodo:_metodo,fecha:new Date().toLocaleString('es-CO')});
+  if(!res.ok){
     document.getElementById('exmsg').textContent='Registro guardado localmente, pero hubo un problema conectando con el servidor. Revisa tu conexión.';
+  }else{
+    // IMPORTANTE: usar el ID real que asignó el servidor (fila de la hoja),
+    // no el ID local, para que luego el comprobante se pueda encontrar y actualizar.
+    regData.id=res.id;
+    var rl2=await dbGet('rifa_reg')||[];
+    for(var ri=0;ri<rl2.length;ri++){ if(rl2[ri].id===idLocal){ rl2[ri].id=res.id; break; } }
+    await dbSet('rifa_reg',rl2);
   }
   setTimeout(abrirPago,1200);
 }
