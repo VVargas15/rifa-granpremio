@@ -719,7 +719,7 @@ function verDetalle(id) {
         ? (comp.startsWith('data:image') || comp.startsWith('/9j') || comp.length > 100
             ? `<img src="${comp.startsWith('data:') ? comp : 'data:image/jpeg;base64,'+comp}" alt="Comprobante" onclick="document.getElementById('lightbox-img').src=this.src;document.getElementById('lightbox').style.display='flex'" style="max-height:400px;width:100%;object-fit:contain;border-radius:10px;cursor:zoom-in" onerror="this.outerHTML='<p style=color:var(--muted)>No se pudo cargar la imagen.</p>'">`
             : comp.startsWith('http')
-              ? `<img src="${escHtml(comp)}" alt="Comprobante" onclick="document.getElementById('lightbox-img').src=this.src;document.getElementById('lightbox').style.display='flex'" style="max-height:400px;width:100%;object-fit:contain;border-radius:10px;cursor:zoom-in" onerror="this.outerHTML='<p style=color:var(--muted)>No se pudo cargar la imagen.</p>'">`
+              ? `<img src="${escHtml(driveDirectUrl(comp))}" alt="Comprobante" onclick="document.getElementById('lightbox-img').src=this.src;document.getElementById('lightbox').style.display='flex'" style="max-height:400px;width:100%;object-fit:contain;border-radius:10px;cursor:zoom-in" onerror="this.outerHTML='<a href=\'${escHtml(comp)}\' target=\'_blank\' style=\'color:var(--accent2)\'>Ver comprobante →</a>'">`
               : `<p style="font-size:13px;color:var(--muted)">${escHtml(comp)}</p>`)
         : '<p style="color:var(--muted)">Sin comprobante</p>'}
     </div>
@@ -744,6 +744,22 @@ function toast(msg, tipo) {
 }
 
 // ── UTILIDADES ────────────────────────────────────
+// Convierte links de Google Drive al formato que muestra la imagen directamente
+function driveDirectUrl(url) {
+  if (!url) return url;
+  // Formato: /file/d/FILE_ID/view  →  uc?export=view&id=FILE_ID
+  var m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (m) return 'https://drive.google.com/uc?export=view&id=' + m[1];
+  // Formato: id=FILE_ID
+  var m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (m2) return 'https://drive.google.com/uc?export=view&id=' + m2[1];
+  // Formato: /open?id=FILE_ID
+  var m3 = url.match(/\/open\?id=([a-zA-Z0-9_-]+)/);
+  if (m3) return 'https://drive.google.com/uc?export=view&id=' + m3[1];
+  return url; // si no es Drive, devolver igual
+}
+
+
 function escHtml(s) {
   return String(s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
