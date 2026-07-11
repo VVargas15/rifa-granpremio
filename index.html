@@ -650,28 +650,17 @@ function prevComp(e){
   var f=e.target.files[0];if(!f)return;
   var rd=new FileReader();
   rd.onload=function(ev){
-    // Comprimir imagen antes de guardar
+    // Guardar en Drive → no hay límite de tamaño, usar buena calidad
     var img=new Image();
     img.onload=function(){
-      var LIMIT=42000; // margen seguro bajo el límite de 50k chars/celda de Google Sheets
-      var sizes=[400,320,260,200,160]; // se va reduciendo si sigue pesando mucho
-      var quals=[0.5,0.4,0.3,0.25,0.2];
-      var out=null;
-      for(var s=0;s<sizes.length && !out;s++){
-        var MAX=sizes[s];
-        var w=img.width,h=img.height;
-        if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
-        if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
-        var canvas=document.createElement('canvas');
-        canvas.width=w;canvas.height=h;
-        canvas.getContext('2d').drawImage(img,0,0,w,h);
-        for(var q=0;q<quals.length;q++){
-          var candidate=canvas.toDataURL('image/jpeg',quals[q]);
-          if(candidate.length<=LIMIT){ out=candidate; break; }
-        }
-      }
-      // Si aún así no cupo (imagen extrema), usa la más pequeña/comprimida que se generó igual
-      compImg = out || canvas.toDataURL('image/jpeg',0.2);
+      var MAX=1200; // resolución máxima 1200px
+      var w=img.width, h=img.height;
+      if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+      if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
+      var canvas=document.createElement('canvas');
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      compImg = canvas.toDataURL('image/jpeg', 0.85); // alta calidad
       console.log('[Comprobante] tamaño final base64:', compImg.length, 'chars');
       document.getElementById('cprev').src=compImg;
       document.getElementById('cprev').style.display='block';
