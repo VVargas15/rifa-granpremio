@@ -447,7 +447,7 @@
      CONFIGURACIÓN — pon tu URL aquí abajo
 ════════════════════════════════════════════ -->
 <script>
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwIZqFX6N2OSb7Vxva_ZAkT4goqFAGl9NAuqEqbHaL4RvwRucQZUD5bT2jUpWlYAJ5uOA/exec';
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwKUbCICVdpuJKzjGuZjI0k3QhcgHIqGjQ-XeSfPBvBVb2pDxMieL0H95SDOHi_U8nQyg/exec';
   const ADMIN_PASS = 'rifa2026@';
 </script>
 <!-- ══════════════════════════════════════════ -->
@@ -744,19 +744,21 @@ function toast(msg, tipo) {
 }
 
 // ── UTILIDADES ────────────────────────────────────
-// Convierte links de Google Drive al formato que muestra la imagen directamente
+// Convierte cualquier link de imagen a uno que cargue directo en <img>
 function driveDirectUrl(url) {
   if (!url) return url;
-  // Formato: /file/d/FILE_ID/view  →  uc?export=view&id=FILE_ID
-  var m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if (m) return 'https://drive.google.com/uc?export=view&id=' + m[1];
-  // Formato: id=FILE_ID
-  var m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-  if (m2) return 'https://drive.google.com/uc?export=view&id=' + m2[1];
-  // Formato: /open?id=FILE_ID
-  var m3 = url.match(/\/open\?id=([a-zA-Z0-9_-]+)/);
-  if (m3) return 'https://drive.google.com/uc?export=view&id=' + m3[1];
-  return url; // si no es Drive, devolver igual
+  // Ya es googleusercontent — funciona directo
+  if (url.includes('googleusercontent.com')) return url;
+  // thumbnail?id=FILE_ID  →  uc?export=view&id=FILE_ID
+  var mt = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (mt) return 'https://drive.google.com/uc?export=view&id=' + mt[1];
+  // /file/d/FILE_ID/
+  var mf = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (mf) return 'https://drive.google.com/uc?export=view&id=' + mf[1];
+  // /open?id=FILE_ID
+  var mo = url.match(/\/open\?id=([a-zA-Z0-9_-]+)/);
+  if (mo) return 'https://drive.google.com/uc?export=view&id=' + mo[1];
+  return url;
 }
 
 
