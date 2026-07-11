@@ -717,9 +717,9 @@ function verDetalle(id) {
     <div class="field"><label>Comprobante del participante</label>
       ${comp
         ? (comp.startsWith('data:image') || comp.startsWith('/9j') || comp.length > 500
-            ? `<img src="${comp.startsWith('data:') ? comp : 'data:image/jpeg;base64,'+comp}" alt="Comprobante" onclick="document.getElementById('lightbox-img').src=this.src;document.getElementById('lightbox').style.display='flex'" style="max-height:400px;width:100%;object-fit:contain;border-radius:10px;cursor:zoom-in" onerror="this.outerHTML='<p style=color:var(--muted)>No se pudo cargar la imagen.</p>'">`
+            ? `<img src="${comp.startsWith('data:') ? comp : 'data:image/jpeg;base64,'+comp}" alt="Comprobante" onclick="document.getElementById('lightbox-img').src=this.src;document.getElementById('lightbox').style.display='flex'" style="max-height:400px;width:100%;object-fit:contain;border-radius:10px;cursor:zoom-in">`
             : comp.startsWith('http')
-              ? `<a href="${escHtml(driveViewUrl(comp))}" target="_blank" style="display:inline-block;background:#1E6FFF;color:#fff;font-weight:700;padding:.7rem 1.4rem;border-radius:10px;text-decoration:none;font-size:.95rem">🖼️ Ver comprobante</a>`
+              ? `<img src="${escHtml(toThumbnail(comp))}" alt="Comprobante" onclick="document.getElementById('lightbox-img').src=this.src;document.getElementById('lightbox').style.display='flex'" style="max-height:400px;width:100%;object-fit:contain;border-radius:10px;cursor:zoom-in" onerror="this.outerHTML='<p style=color:var(--muted)>No se pudo cargar imagen</p>'">`
               : `<p style="font-size:13px;color:var(--muted)">${escHtml(comp)}</p>`)
         : '<p style="color:var(--muted)">Sin comprobante</p>'}
     </div>
@@ -744,19 +744,19 @@ function toast(msg, tipo) {
 }
 
 // ── UTILIDADES ────────────────────────────────────
-// Convierte cualquier link de Drive/googleusercontent al visor web de Drive
-function driveViewUrl(url) {
+// Convierte cualquier link de Drive al formato thumbnail que funciona en <img>
+function toThumbnail(url) {
   if (!url) return url;
-  // Extraer FILE_ID de cualquier formato
+  // Ya es thumbnail — ok
+  if (url.includes('thumbnail?id=')) return url;
+  // Extraer FILE_ID
   var id = null;
-  var m1 = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-  if (m1) id = m1[1];
-  var m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-  if (m2) id = m2[1];
+  var m1 = url.match(/\/d\/([a-zA-Z0-9_-]+)/);       if (m1) id = m1[1];
+  var m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);     if (m2) id = m2[1];
+  var m3 = url.match(/\/d\/([a-zA-Z0-9_-]+)/);        if (m3) id = m3[1];
   // lh3.googleusercontent.com/d/FILE_ID
-  var m3 = url.match(/googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/);
-  if (m3) id = m3[1];
-  if (id) return 'https://drive.google.com/file/d/' + id + '/view';
+  var m4 = url.match(/googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/); if (m4) id = m4[1];
+  if (id) return 'https://drive.google.com/thumbnail?id=' + id + '&sz=w1000';
   return url;
 }
 
